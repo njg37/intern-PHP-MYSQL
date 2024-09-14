@@ -32,7 +32,7 @@ if (!$user) {
     exit();
 }
 
-$apiKey = ''; 
+$apiKey = $_ENV['OPENWEATHERMAP_API_KEY']; 
 $city = isset($_POST['city']) ? trim($_POST['city']) : 'London';
 $weatherData = getWeather($city, $apiKey);
 
