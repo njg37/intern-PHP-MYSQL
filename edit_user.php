@@ -1,19 +1,14 @@
 <?php
-
 session_start();
-
 
 if (!isset($_SESSION['user'])) {
     header('Location: login.php');
     exit();
 }
 
-
 require_once "database.php";
 
-
 $id = $_GET['id'];
-
 
 $sql = "SELECT * FROM users WHERE id = ?";
 $stmt = mysqli_stmt_init($conn);
@@ -24,17 +19,17 @@ if (mysqli_stmt_prepare($stmt, $sql)) {
     $user = mysqli_fetch_assoc($result);
 }
 
-
 if (isset($_POST['update'])) {
     $fullname = $_POST['fullname'];
     $email = $_POST['email'];
     $phone = $_POST['phone'];
     $address = $_POST['address'];
+    $role = $_POST['role'];
 
-    $sql = "UPDATE users SET full_name = ?, email = ?, phone = ?, address = ? WHERE id = ?";
+    $sql = "UPDATE users SET full_name = ?, email = ?, phone = ?, address = ?, role = ? WHERE id = ?";
     $stmt = mysqli_stmt_init($conn);
     if (mysqli_stmt_prepare($stmt, $sql)) {
-        mysqli_stmt_bind_param($stmt, "ssssi", $fullname, $email, $phone, $address, $id);
+        mysqli_stmt_bind_param($stmt, "sssssi", $fullname, $email, $phone, $address, $role, $id);
         mysqli_stmt_execute($stmt);
         header('Location: manage_users.php');
     } else {
@@ -197,6 +192,27 @@ a:hover {
                 font-size: 14px;
             }
         }
+        .form-select {
+    width: 100%;
+    padding: 10px 15px;
+    font-size: 0.9rem;
+    color: #333;
+    background-color: #e0f2f1;
+    border: 2px solid #b2dfdb;
+    border-radius: 20px;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus {
+    border-color: #00796b;
+    background-color: #ffffff;
+    box-shadow: 0 0 8px rgba(0, 121, 107, 0.5);
+    transform: scale(1.01);
+}
+
+.form-select:hover {
+    border-color: #00796b;
+}
 
 
     </style>
@@ -220,6 +236,13 @@ a:hover {
             <div class="form-group">
                 <label for="address">Address</label>
                 <input type="text" class="form-control" name="address" value="<?php echo $user['address']; ?>" required>
+            </div>
+            <div class="form-group">
+                <label for="role">Role</label>
+                <select class="form-select" name="role" aria-label="Select role" required>
+                    <option value="admin" <?php if ($user['role'] == 'admin') echo "selected"; ?>>Admin</option>
+                    <option value="user" <?php if ($user['role'] == 'user') echo "selected"; ?>>User</option>
+                </select>
             </div>
             <div class="form-btn">
                 <input type="submit" class="btn btn-primary" value="Update" name="update">
