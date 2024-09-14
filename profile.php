@@ -38,15 +38,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (empty($errors)) {
         try {
-            // Check database connection
-            if (!$conn) {
-                throw new Exception("Connection failed: " . mysqli_connect_error());
-            }
-
             // Update user profile
             $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, address = ? WHERE id = ?");
-            $stmt->bind_param("ssssi", $fullname, $email, $phone, $address, $user_id);
-
+            $stmt->bind_param("sssi", $fullname, $email, $phone, $address, $user_id);
+    
             if ($stmt->execute()) {
                 // Fetch updated data for verification
                 $verifyStmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
@@ -54,28 +49,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $verifyStmt->execute();
                 $result = $verifyStmt->get_result();
                 $updatedUser = $result->fetch_assoc();
-
+    
                 // Log updated data for debugging
                 error_log("Updated user data: " . json_encode($updatedUser));
-
+    
                 // Process profile picture upload
                 if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['size'] > 0) {
                     $target_dir = "uploads/";
                     $target_file = $target_dir . basename($_FILES["profile_picture"]["name"]);
                     $uploadOk = 1;
                     $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
-
+    
                     // Check if image file is a actual image or fake image
-                    if (isset($_POST["submit"])) {
-                        $check = getimagesize($_FILES["image"]["tmp_name"]);
-                        if ($check !== false) {
-                            // File is an image
-                            $uploadOk = 1;
-                        } else {
-                            throw new Exception('File is not an image.');
-                        }
+                    $check = getimagesize($_FILES["profile_picture"]["tmp_name"]);
+                    if ($check !== false) {
+                        // File is an image
+                        $uploadOk = 1;
+                    } else {
+                        throw new Exception('File is not an image.');
                     }
-
+    
                     // Check if $uploadOk is 1, if so save the file
                     if ($uploadOk == 0) {
                         throw new Exception('Sorry, your file was not uploaded.');
@@ -93,12 +86,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
                     }
                 }
-
+    
                 // Set a session variable to indicate successful update
                 $_SESSION['profile_updated'] = true;
-
+    
                 // Redirect to index page
-                header('Location: /login-register/index.php');
+                header('Location: /login-register/index.php?success=true');
                 exit();
             } else {
                 throw new Exception("Database error: " . $stmt->error);
@@ -107,12 +100,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             echo "<div class='alert alert-danger'>An error occurred while updating your profile: " . $e->getMessage() . "</div>";
             error_log("Error updating profile: " . $e->getMessage());
         }
-    } else {
-        foreach ($errors as $error) {
-            echo "<div class='alert alert-danger'>$error</div>";
-        }
     }
-}
+}    
 
 // Fetch user data
 global $conn;
@@ -125,8 +114,6 @@ $has_profile_picture = isset($user['profile_picture']) && !empty($user['profile_
 
 // Log current user data for debugging
 error_log("Current user data: " . json_encode($user));
-
-// Rest of your HTML and JavaScript code here...
 
 function resizeImage($filename) {
     if (!function_exists('imagecreatefromjpeg')) {
@@ -148,6 +135,7 @@ function resizeImage($filename) {
     imagejpeg($temp, $filename);
     imagedestroy($temp);
 }
+
 ?>
 
 <!DOCTYPE html>
@@ -288,41 +276,6 @@ function resizeImage($filename) {
             border-left: 4px solid #1b5e20;
         }
 
-        /* .profile-picture-container img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-        }
-
-        .edit-button-container {
-            text-align: center;
-            margin-top: 20px;
-        }
-
-        .edit-button {
-            display: inline-block;
-            padding: 5px 10px;
-            background-color: #007bff;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-
-        .edit-icon-link {
-            font-size: 24px;
-            color: #007bff;
-            transition: all 0.3s ease;
-        }
-
-        .edit-icon-link:hover {
-            color: #0056b3;
-            transform: scale(1.2);
-        } */
-
         .modal-backdrop {
             z-index: 1030 !important;
         }
@@ -352,7 +305,6 @@ function resizeImage($filename) {
             background-color: transparent;
             color: #00796b;
             border: 2px solid #00796b;
-
         }
 
         .update-profile-button {
@@ -368,8 +320,6 @@ function resizeImage($filename) {
             color: white;
             text-decoration: none;
         }
-
-
 
         .profile-picture-container {
             position: relative;
@@ -408,24 +358,26 @@ function resizeImage($filename) {
         }
 
         .preview-image {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    border-radius: 50%;
-    margin-bottom: 20px;
-}
-.preview-image.profile-picture-modal {
-    max-width: 100%;
-    height: auto;
-    width: 300px; /* Adjust this value based on your modal size */
-    object-fit: cover;
-    border-radius: 50%; /* Optional: makes the image circular */
-}
-.profile-picture-container img {
-    width: 100px; /* Adjust as needed */
-    height: auto;
-    object-fit: cover;
-}
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 50%;
+            margin-bottom: 20px;
+        }
+
+        .preview-image.profile-picture-modal {
+            max-width: 100%;
+            height: auto;
+            width: 300px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+
+        .profile-picture-container img {
+            width: 100px;
+            height: auto;
+            object-fit: cover;
+        }
 
         @media (max-width: 768px) {
             .container {
@@ -447,31 +399,122 @@ function resizeImage($filename) {
                 font-size: 14px;
             }
         }
+
+
+    /* Modal Styling */
+    .modal-content {
+        background-color: #fff;
+        border-radius: 20px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    .modal-header {
+        background-color: #00796b;
+        border-top-left-radius: 20px;
+        border-top-right-radius: 20px;
+        padding: 15px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-title {
+        color: white;
+        font-weight: bold;
+        font-size: 18px;
+        margin: 0;
+    }
+
+    .btn-close {
+        color: white;
+        opacity: 1;
+        transition: transform 0.3s ease;
+        font-size: 24px;
+        background-color: transparent;
+        border: none;
+        padding: 0;
+    }
+
+    .btn-close:hover {
+        transform: scale(1.2);
+    }
+
+    .modal-body {
+        padding: 20px;
+        background-color: #f8f9fa;
+        border-bottom-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .preview-image.profile-picture-modal {
+        width: 200px;
+        height: 200px;
+        object-fit: cover;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .modal-footer {
+        display: none;
+    }
+
+    @keyframes fadeIn {
+        from {opacity: 0;}
+        to {opacity: 1;}
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 576px) {
+        .modal-content {
+            width: 90%;
+            margin: 0 auto;
+        }
+
+        .preview-image.profile-picture-modal {
+            width: 150px;
+            height: 150px;
+        }
+    }
+    .custom-file-upload {
+        display: inline-block;
+        padding: 6px 12px;
+        cursor: pointer;
+        background-color: #00796b;
+        color: white;
+        border-radius: 20px;
+        transition: background-color 0.3s ease;
+    }
+
+    .custom-file-upload:hover {
+        background-color: #004d40;
+    }
+
+    .custom-file-upload i {
+        margin-right: 5px;
+    }
     </style>
+</head>
 
 <body>
-
-<div class="container">
+    <div class="container">
         <h2>My Profile</h2>
         <form method="post" action="/login-register/profile.php">
             <div class="mt-4">
                 <h4>Current Profile Picture:</h4>
-
                 <div class="profile-picture-container">
-                <img src="/login-register/get-profile-image.php?id=<?php echo $_SESSION['user']; ?>" alt="Profile Picture">
+                    <img src="/login-register/get-profile-image.php?id=<?php echo $_SESSION['user']; ?>" alt="Profile Picture">
                     <?php if ($has_profile_picture): ?>
                         <button type="button" class="edit-button" data-bs-toggle="modal" data-bs-target="#editProfilePictureModal">
                             <i class="fas fa-camera"></i>
                         </button>
                     <?php endif; ?>
-                    <a href="edit-profile.php" class="edit-icon-link"><i class="fas fa-edit"></i></a>
                 </div>
             </div>
-
-            <!-- <div class="mb-3">
-                <label for="profile_picture">Profile Picture:</label>
-                <input type="file" class="form-control" id="profile_picture" name="profile_picture">
-            </div> -->
 
             <div class="mb-3">
                 <label for="fullname">Full Name:</label>
@@ -492,13 +535,6 @@ function resizeImage($filename) {
                 <label for="address">Address:</label>
                 <textarea class="form-control" id="address" name="address" rows="3" required><?php echo htmlspecialchars($user['address']); ?></textarea>
             </div>
-
-            <!-- <div class="row">
-            <div class="col-md-12 mb-4">
-                <a href="index.php" class="btn btn-outline-primary back-button"><i class="fas fa-arrow-left"></i> Back to Dashboard</a>
-                <button type="submit" class="btn btn-primary ms-auto">Update Profile</button>
-            </div>
-        </div> -->
         </form>
         <div class="button-container">
             <a href="/login-register/index.php" class="back-button"><i class="fas fa-arrow-left"></i> Back</a>
@@ -511,17 +547,19 @@ function resizeImage($filename) {
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="editProfilePictureModalLabel">Edit Profile Picture</h5>
+                <h5 class="modal-title" id="editProfilePictureModalLabel">Update Profile Picture</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Current profile picture:</p>
-                <img src="<?php echo htmlspecialchars($user['profile_picture']); ?>" alt="Current Profile Picture" class="mb-3 preview-image profile-picture-modal">
+                <img src="<?php echo htmlspecialchars($user['profile_picture']); ?>" alt="Current Profile Picture" class="preview-image profile-picture-modal mb-4">
                 
-                <form action="/login-register/update-profile-picture.php" method="post" enctype="multipart/form-data">
-                    <input type="file" name="new_profile_picture" accept="image/*" id="profile-picture-input">
-                    <button type="submit" class="btn btn-primary mt-3">Upload New Picture</button>
-                </form>
+                <label for="profile-picture-input" class="custom-file-upload">
+                    <i class="fas fa-camera-retro"></i> Choose File
+                </label>
+                <input type="file" name="new_profile_picture" accept="image/*" id="profile-picture-input" style="display: none;">
+                
+                <button type="submit" class="btn btn-primary w-100 mt-3">Upload New Picture</button>
+            </form>
             </div>
         </div>
     </div>
@@ -532,106 +570,105 @@ function resizeImage($filename) {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
-document.addEventListener('DOMContentLoaded', function() {
-    var editIconLink = document.querySelector('.edit-icon-link');
-    var profilePictureInput = document.getElementById('profile-picture-input');
-    var previewImage = $('.preview-image');
-    var updateButton = document.querySelector('.update-profile-button');
+    document.addEventListener('DOMContentLoaded', function() {
+        var editIconLink = document.querySelector('.edit-icon-link');
+        var profilePictureInput = document.getElementById('profile-picture-input');
+        var previewImage = $('.preview-image');
+        var updateButton = document.querySelector('.update-profile-button');
 
-    if (editIconLink) {
-        editIconLink.addEventListener('click', function(event) {
-            event.preventDefault();
-            $('#editProfilePictureModal').modal('show');
-        });
-    }
-
-    profilePictureInput.addEventListener('change', function() {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            previewImage.attr('src', e.target.result);
+        if (editIconLink) {
+            editIconLink.addEventListener('click', function(event) {
+                event.preventDefault();
+                $('#editProfilePictureModal').modal('show');
+            });
         }
-        reader.readAsDataURL(profilePictureInput.files[0]);
-    });
 
-    // Function to handle profile picture upload
-    function uploadProfilePicture() {
-        var formData = new FormData();
-        formData.append('new_profile_picture', profilePictureInput.files[0]);
+        profilePictureInput.addEventListener('change', function() {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                previewImage.attr('src', e.target.result);
+            }
+            reader.readAsDataURL(profilePictureInput.files[0]);
+        });
 
-        $.ajax({
-            url: "/login-register/update-profile-picture.php",
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                try {
-                    var responseData = JSON.parse(response);
-                    if (responseData.success) {
-                        console.log('Profile picture uploaded successfully');
-                        
-                        // Update the profile picture display
-                        var profilePictureContainer = $('.profile-picture-container');
-                        profilePictureContainer.html('<img src="' + responseData.message + '" alt="Profile Picture" style="object-fit: cover;">');
-                        $('#editProfilePictureModal').modal('hide'); // Close the modal
-                    } else {
-                        alert(responseData.message);
+        // Function to handle profile picture upload
+        function uploadProfilePicture() {
+            var formData = new FormData();
+            formData.append('new_profile_picture', profilePictureInput.files[0]);
+
+            $.ajax({
+                url: "/login-register/update-profile-picture.php",
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    try {
+                        var responseData = JSON.parse(response);
+                        if (responseData.success) {
+                            console.log('Profile picture uploaded successfully');
+                            
+                            // Update the profile picture display
+                            var profilePictureContainer = $('.profile-picture-container');
+                            profilePictureContainer.html('<img src="' + responseData.message + '" alt="Profile Picture" style="object-fit: cover;">');
+                            $('#editProfilePictureModal').modal('hide'); // Close the modal
+                        } else {
+                            alert(responseData.message);
+                        }
+                    } catch (error) {
+                        console.error('Error parsing JSON:', error);
+                        console.log('Raw response:', response);
+                        alert('An error occurred while uploading the profile picture.');
                     }
-                } catch (error) {
-                    console.error('Error parsing JSON:', error);
-                    console.log('Raw response:', response);
-                    alert('An error occurred while uploading the profile picture.');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error uploading profile picture:', error);
+                    alert('Error uploading profile picture.');
                 }
-            },
-            error: function(xhr, status, error) {
-                console.error('Error uploading profile picture:', error);
-                alert('Error uploading profile picture.');
-            }
+            });
+        }
+
+        // Function to handle general profile update
+        function updateProfile() {
+            var formData = new FormData(document.querySelector('form'));
+            
+            $.ajax({
+                url: "/login-register/profile.php",
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(response) {
+                    console.log('Profile updated successfully');
+                    // You can update the UI here if needed
+                    alert('Your profile has been updated successfully!');
+                    window.location.href = '/login-register/index.php?updated=true';
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error updating profile:', error);
+                    alert('An error occurred while updating your profile.');
+                }
+            });
+        }
+
+        // Handle form submission
+        $('form').on('submit', function(e) {
+            e.preventDefault();
+            updateProfile();
         });
-    }
 
-    // Function to handle general profile update
-    function updateProfile() {
-        var formData = new FormData(document.querySelector('form'));
-        
-        $.ajax({
-            url: "/login-register/profile.php",
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                console.log('Profile updated successfully');
-                // You can update the UI here if needed
-                alert('Your profile has been updated successfully!');
-            },
-            error: function(xhr, status, error) {
-                console.error('Error updating profile:', error);
-                alert('An error occurred while updating your profile.');
-            }
+        // Handle update button click
+        updateButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            updateProfile();
         });
-    }
 
-    // Handle form submission
-    $('form').on('submit', function(e) {
-        e.preventDefault();
-        updateProfile();
+        // Handle modal submit button
+        document.querySelector('#editProfilePictureModal .btn-primary').addEventListener('click', function(e) {
+            e.preventDefault();
+            uploadProfilePicture();
+        });
     });
-
-    // Handle update button click
-    updateButton.addEventListener('click', function(e) {
-        e.preventDefault();
-        updateProfile();
-    });
-
-    // Handle modal submit button
-    document.querySelector('#editProfilePictureModal .btn-primary').addEventListener('click', function(e) {
-        e.preventDefault();
-        uploadProfilePicture();
-    });
-});
-</script>
-
+    </script>
 </body>
-
 </html>
