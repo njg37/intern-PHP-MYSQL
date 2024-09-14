@@ -48,7 +48,7 @@ git clone https://github.com/njg37/intern-PHP-MYSQL.git
 
 2. Set up your database:
    - Create a MySQL database
-   - Import the schema from `database.sql` (if provided)
+
 
 3. Configure environment variables:
    - Create a `.env` file in the root directory
