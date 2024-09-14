@@ -529,14 +529,9 @@ $has_profile_picture = !empty($profilePicturePath);
         <form method="post" action="/login-register/profile.php">
             <div class="mt-4">
                 
-                <div class="profile-picture-container">
-                    <img src="<?php echo htmlspecialchars($profilePicturePath); ?>" alt="Profile Picture" class="profile-picture">
-                    <?php if ($has_profile_picture): ?>
-                        <button type="button" class="edit-button" data-bs-toggle="modal" data-bs-target="#editProfilePictureModal">
-                            <i class="fas fa-camera"></i>
-                        </button>
-                    <?php endif; ?>
-                </div>
+            <div class="profile-picture-container">
+    <img src="<?php echo htmlspecialchars($profilePicturePath); ?>" alt="Profile Picture" class="profile-picture" data-bs-toggle="modal" data-bs-target="#editProfilePictureModal">
+</div>
             </div>
 
             <div class="mb-3">
@@ -567,25 +562,25 @@ $has_profile_picture = !empty($profilePicturePath);
 
     <!-- Modal -->
     <div class="modal fade" id="editProfilePictureModal" tabindex="-1" aria-labelledby="editProfilePictureModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="editProfilePictureModalLabel">Update Profile Picture</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <img src="<?php echo htmlspecialchars($profilePicturePath); ?>" alt="Current Profile Picture" class="preview-image profile-picture-modal mb-4">
-
-                    <label for="profile-picture-input" class="custom-file-upload">
-                        <i class="fas fa-camera-retro"></i> Choose File
-                    </label>
-                    <input type="file" name="new_profile_picture" accept="image/*" id="profile-picture-input" style="display: none;">
-
-                    <button type="submit" class="btn btn-primary w-100 mt-3">Upload New Picture</button>
-                </div>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editProfilePictureModalLabel">Edit Profile Picture</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <img src="<?php echo htmlspecialchars($profilePicturePath); ?>" alt="Current Profile Picture" class="preview-image profile-picture-modal mb-4">
+                
+                <label for="profile-picture-input" class="custom-file-upload">
+                    Choose File
+                </label>
+                <input type="file" name="new_profile_picture" accept="image/*" id="profile-picture-input" style="display: none;">
+                
+                <button type="submit" class="btn btn-primary w-100 mt-3">Upload New Picture</button>
             </div>
         </div>
     </div>
+</div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
