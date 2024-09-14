@@ -2,28 +2,35 @@
 session_start();
 require_once "database.php";
 require_once "helpers.php";
-// Debugging information
-echo "Session Status: " . (isset($_SESSION) ? 'Started' : 'Not Started') . "<br>";
-echo "User ID: " . (isset($_SESSION['user']) ? $_SESSION['user'] : 'Not Set') . "<br>";
-echo "User Role: " . (isset($_SESSION['user']) ? hasPermission('admin') ? 'admin' : 'not admin' : 'Not Set') . "<br>";
 
-// Check if user is logged in
+
+
+
 if (!isset($_SESSION['user'])) {
     echo "You are not logged in. Please log in first.";
     exit();
 }
 
+
+$sql = "SELECT role FROM users WHERE id = ?";
+$stmt = mysqli_prepare($conn, $sql);
+mysqli_stmt_bind_param($stmt, "i", $_SESSION['user']);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$row = mysqli_fetch_assoc($result);
+
+
+
 if (!hasPermission('admin')) {
     echo "You don't have permission to access this page.";
-    //header('Location: index.php');
     exit();
 }
-// If we reach here, the user is logged in and has admin permission
-echo "Welcome, admin! You have access to this page.";
+
+
+
 $sql = "SELECT * FROM users";
 $result = mysqli_query($conn, $sql);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -180,11 +187,11 @@ $result = mysqli_query($conn, $sql);
         }
     }
 </style>
-
 </head>
 <body>
     <div class="container mt-4">
         <h2>Manage Users</h2>
+        
         <?php if (mysqli_num_rows($result) > 0): ?>
             <table class="table table-bordered table-striped">
                 <thead>
@@ -194,6 +201,7 @@ $result = mysqli_query($conn, $sql);
                         <th>Email</th>
                         <th>Phone</th>
                         <th>Address</th>
+                        <th>Role</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -205,6 +213,7 @@ $result = mysqli_query($conn, $sql);
                             <td><?php echo $row['email']; ?></td>
                             <td><?php echo $row['phone']; ?></td>
                             <td><?php echo $row['address']; ?></td>
+                            <td><?php echo $row['role']; ?></td>
                             <td class="action-buttons">
                                 <a href="edit_user.php?id=<?php echo $row['id']; ?>" class="btn btn-edit">Edit</a>
                                 <a href="delete_user.php?id=<?php echo $row['id']; ?>" class="btn btn-delete" onclick="return confirm('Are you sure you want to delete this user?');">Delete</a>
@@ -217,5 +226,14 @@ $result = mysqli_query($conn, $sql);
             <p>No users found.</p>
         <?php endif; ?>
     </div>
+    
+    <script>
+window.onload = function() {
+    if (!localStorage.getItem('welcomeShown')) {
+        alert("Welcome, admin! You have access to this page.");
+        localStorage.setItem('welcomeShown', true);
+    }
+};
+</script>
 </body>
 </html>
