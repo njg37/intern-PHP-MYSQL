@@ -11,72 +11,6 @@ if (!isset($_SESSION['user'])) {
 $user_id = $_SESSION['user'];
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    // Process form submission
-    $target_dir = "uploads/";
-    $target_file = $target_dir . basename($_FILES["profile_picture"]["name"]);
-    $uploadOk = 1;
-    $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
-
-    // Check if image file is a actual image or fake image
-    if (isset($_POST["submit"])) {
-        $check = getimagesize($_FILES["image"]["tmp_name"]);
-        if ($check !== false) {
-            // File is an image
-            $uploadOk = 1;
-        } else {
-            echo json_encode(['success' => false, 'message' => 'File is not an image.']);
-            exit();
-        }
-    }
-
-    // Check if $uploadOk is 1, if so save the file
-    if ($uploadOk == 0) {
-        echo json_encode(['success' => false, 'message' => 'Sorry, your file was not uploaded.']);
-    } else {
-        if (move_uploaded_file($_FILES["profile_picture"]["tmp_name"], $target_file)) {
-            echo "The file " . basename($_FILES["image"]["name"]) . " has been uploaded.";
-            
-            // Resize the image
-            resizeImage($target_file);
-            
-            // Update user profile with new image URL
-            $new_image_url = "/uploads/" . basename($_FILES["image"]["name"]);
-            $update_query = "UPDATE users SET profile_picture = '$new_image_url' WHERE id = '" . $_SESSION['user'] . "'";
-            mysqli_query($conn, $update_query);
-            
-            // After successful upload and database update
-            $response = array('success' => true, 'message' => $new_image_url);
-            echo json_encode($response);
-        } else {
-            echo json_encode(['success' => false, 'message' => 'Sorry, there was an error uploading your file.']);
-            exit();
-        }
-    }
-}
-
-function resizeImage($filename) {
-    if (!function_exists('imagecreatefromjpeg')) {
-        echo "GD library is not enabled. Please enable it in your php.ini file.";
-        return;
-    }
-
-    $full_path = $_SERVER['DOCUMENT_ROOT'] . "/login-register/" . $filename;
-    list($width, $height) = getimagesize($full_path);
-    
-    $new_width = 300;
-    $new_height = ($height / $width) * $new_width;
-    
-    $image = imagecreatefromjpeg($filename);
-    $temp = imagecreatetruecolor($new_width, $new_height);
-    
-    imagecopyresampled($temp, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
-    
-    imagejpeg($temp, $filename);
-    imagedestroy($temp);
-}
-
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $fullname = trim($_POST['fullname']);
     $email = trim($_POST['email']);
     $phone = trim($_POST['phone']);
@@ -104,20 +38,74 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (empty($errors)) {
         try {
+            // Check database connection
+            if (!$conn) {
+                throw new Exception("Connection failed: " . mysqli_connect_error());
+            }
+
+            // Update user profile
             $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, address = ? WHERE id = ?");
             $stmt->bind_param("ssssi", $fullname, $email, $phone, $address, $user_id);
-            if ($stmt->execute()) {
-                echo "<div class='alert alert-success'>Profile updated successfully!</div>";
 
-                // Check if a profile picture was uploaded
+            if ($stmt->execute()) {
+                // Fetch updated data for verification
+                $verifyStmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
+                $verifyStmt->bind_param("i", $user_id);
+                $verifyStmt->execute();
+                $result = $verifyStmt->get_result();
+                $updatedUser = $result->fetch_assoc();
+
+                // Log updated data for debugging
+                error_log("Updated user data: " . json_encode($updatedUser));
+
+                // Process profile picture upload
                 if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['size'] > 0) {
-                    uploadProfilePicture($user_id);
+                    $target_dir = "uploads/";
+                    $target_file = $target_dir . basename($_FILES["profile_picture"]["name"]);
+                    $uploadOk = 1;
+                    $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
+
+                    // Check if image file is a actual image or fake image
+                    if (isset($_POST["submit"])) {
+                        $check = getimagesize($_FILES["image"]["tmp_name"]);
+                        if ($check !== false) {
+                            // File is an image
+                            $uploadOk = 1;
+                        } else {
+                            throw new Exception('File is not an image.');
+                        }
+                    }
+
+                    // Check if $uploadOk is 1, if so save the file
+                    if ($uploadOk == 0) {
+                        throw new Exception('Sorry, your file was not uploaded.');
+                    } else {
+                        if (move_uploaded_file($_FILES["profile_picture"]["tmp_name"], $target_file)) {
+                            // Resize the image
+                            resizeImage($target_file);
+                            
+                            // Update user profile with new image URL
+                            $new_image_url = "/uploads/" . basename($_FILES["image"]["name"]);
+                            $update_query = "UPDATE users SET profile_picture = '$new_image_url' WHERE id = '" . $_SESSION['user'] . "'";
+                            mysqli_query($conn, $update_query);
+                        } else {
+                            throw new Exception('Sorry, there was an error uploading your file.');
+                        }
+                    }
                 }
+
+                // Set a session variable to indicate successful update
+                $_SESSION['profile_updated'] = true;
+
+                // Redirect to index page
+                header('Location: /login-register/index.php');
+                exit();
             } else {
                 throw new Exception("Database error: " . $stmt->error);
             }
         } catch (Exception $e) {
-            echo "<div class='alert alert-danger'>An error occurred while updating your profile.</div>";
+            echo "<div class='alert alert-danger'>An error occurred while updating your profile: " . $e->getMessage() . "</div>";
+            error_log("Error updating profile: " . $e->getMessage());
         }
     } else {
         foreach ($errors as $error) {
@@ -134,6 +122,32 @@ $stmt->execute();
 $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $has_profile_picture = isset($user['profile_picture']) && !empty($user['profile_picture']);
+
+// Log current user data for debugging
+error_log("Current user data: " . json_encode($user));
+
+// Rest of your HTML and JavaScript code here...
+
+function resizeImage($filename) {
+    if (!function_exists('imagecreatefromjpeg')) {
+        echo "GD library is not enabled. Please enable it in your php.ini file.";
+        return;
+    }
+
+    $full_path = $_SERVER['DOCUMENT_ROOT'] . "/login-register/" . $filename;
+    list($width, $height) = getimagesize($full_path);
+    
+    $new_width = 300;
+    $new_height = ($height / $width) * $new_width;
+    
+    $image = imagecreatefromjpeg($filename);
+    $temp = imagecreatetruecolor($new_width, $new_height);
+    
+    imagecopyresampled($temp, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height);
+    
+    imagejpeg($temp, $filename);
+    imagedestroy($temp);
+}
 ?>
 
 <!DOCTYPE html>
@@ -522,6 +536,7 @@ document.addEventListener('DOMContentLoaded', function() {
     var editIconLink = document.querySelector('.edit-icon-link');
     var profilePictureInput = document.getElementById('profile-picture-input');
     var previewImage = $('.preview-image');
+    var updateButton = document.querySelector('.update-profile-button');
 
     if (editIconLink) {
         editIconLink.addEventListener('click', function(event) {
@@ -538,42 +553,82 @@ document.addEventListener('DOMContentLoaded', function() {
         reader.readAsDataURL(profilePictureInput.files[0]);
     });
 
-// Inside the $(document).ready() function
-$('form').on('submit', function(e) {
-    e.preventDefault();
-    var formData = new FormData(this);
-    
-    $.ajax({
-        url: "/login-register/update-profile-picture.php",
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function(response) {
-            try {
-                var responseData = JSON.parse(response);
-                if (responseData.success) {
-                    console.log('Profile picture uploaded successfully');
-                    
-                    // Update the profile picture display
-                    var profilePictureContainer = $('.profile-picture-container');
-                    profilePictureContainer.html('<img src="' + responseData.message + '" alt="Profile Picture" style="object-fit: cover;">');
-                    $('#editProfilePictureModal').modal('hide'); // Close the modal
-                } else {
-                    alert(responseData.message);
+    // Function to handle profile picture upload
+    function uploadProfilePicture() {
+        var formData = new FormData();
+        formData.append('new_profile_picture', profilePictureInput.files[0]);
+
+        $.ajax({
+            url: "/login-register/update-profile-picture.php",
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                try {
+                    var responseData = JSON.parse(response);
+                    if (responseData.success) {
+                        console.log('Profile picture uploaded successfully');
+                        
+                        // Update the profile picture display
+                        var profilePictureContainer = $('.profile-picture-container');
+                        profilePictureContainer.html('<img src="' + responseData.message + '" alt="Profile Picture" style="object-fit: cover;">');
+                        $('#editProfilePictureModal').modal('hide'); // Close the modal
+                    } else {
+                        alert(responseData.message);
+                    }
+                } catch (error) {
+                    console.error('Error parsing JSON:', error);
+                    console.log('Raw response:', response);
+                    alert('An error occurred while uploading the profile picture.');
                 }
-            } catch (error) {
-                console.error('Error parsing JSON:', error);
-                console.log('Raw response:', response);
-                alert('An error occurred while uploading the profile picture.');
+            },
+            error: function(xhr, status, error) {
+                console.error('Error uploading profile picture:', error);
+                alert('Error uploading profile picture.');
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('Error uploading profile picture:', error);
-            alert('Error uploading profile picture.');
-        }
+        });
+    }
+
+    // Function to handle general profile update
+    function updateProfile() {
+        var formData = new FormData(document.querySelector('form'));
+        
+        $.ajax({
+            url: "/login-register/profile.php",
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                console.log('Profile updated successfully');
+                // You can update the UI here if needed
+                alert('Your profile has been updated successfully!');
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating profile:', error);
+                alert('An error occurred while updating your profile.');
+            }
+        });
+    }
+
+    // Handle form submission
+    $('form').on('submit', function(e) {
+        e.preventDefault();
+        updateProfile();
     });
-});
+
+    // Handle update button click
+    updateButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        updateProfile();
+    });
+
+    // Handle modal submit button
+    document.querySelector('#editProfilePictureModal .btn-primary').addEventListener('click', function(e) {
+        e.preventDefault();
+        uploadProfilePicture();
+    });
 });
 </script>
 
