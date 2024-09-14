@@ -16,7 +16,7 @@ if (isset($_GET['id'])) {
         header("Content-Type: image/" . $image_type);
         readfile($image_path);
     } else {
-        // If no profile picture, serve a default image
+
         $default_image_path = $_SERVER['DOCUMENT_ROOT'] . "/login-register/images/default_profile_picture.jpg";
         header("Content-Type: image/jpeg");
         readfile($default_image_path);
