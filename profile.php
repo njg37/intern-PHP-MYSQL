@@ -38,46 +38,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (empty($errors)) {
         try {
-            // Update user profile
+            
             $stmt = $conn->prepare("UPDATE users SET full_name = ?, email = ?, phone = ?, address = ? WHERE id = ?");
             $stmt->bind_param("sssi", $fullname, $email, $phone, $address, $user_id);
 
             if ($stmt->execute()) {
-                // Fetch updated data for verification
+                
                 $verifyStmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
                 $verifyStmt->bind_param("i", $user_id);
                 $verifyStmt->execute();
                 $result = $verifyStmt->get_result();
                 $updatedUser = $result->fetch_assoc();
 
-                // Log updated data for debugging
+                
                 error_log("Updated user data: " . json_encode($updatedUser));
 
-                // Process profile picture upload
+                
                 if (isset($_FILES['profile_picture']) && $_FILES['profile_picture']['size'] > 0) {
                     $target_dir = "uploads/";
                     $target_file = $target_dir . basename($_FILES["profile_picture"]["name"]);
                     $uploadOk = 1;
                     $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
-                    // Check if image file is a actual image or fake image
+                    
                     $check = getimagesize($_FILES["profile_picture"]["tmp_name"]);
                     if ($check !== false) {
-                        // File is an image
+                        
                         $uploadOk = 1;
                     } else {
                         throw new Exception('File is not an image.');
                     }
 
-                    // Check if $uploadOk is 1, if so save the file
+                    
                     if ($uploadOk == 0) {
                         throw new Exception('Sorry, your file was not uploaded.');
                     } else {
                         if (move_uploaded_file($_FILES["profile_picture"]["tmp_name"], $target_file)) {
-                            // Resize the image
+                            
                             resizeImage($target_file);
 
-                            // Update user profile with new image URL
+                          
                             $new_image_url = "/uploads/" . basename($_FILES["profile_picture"]["name"]);
                             $update_query = "UPDATE users SET profile_picture = '$new_image_url' WHERE id = '" . $_SESSION['user'] . "'";
                             mysqli_query($conn, $update_query);
@@ -87,10 +87,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     }
                 }
 
-                // Set a session variable to indicate successful update
+           
                 $_SESSION['profile_updated'] = true;
 
-                // Redirect to index page
+               
                 header('Location: /login-register/index.php?updated=true');
                 exit();
             } else {
@@ -107,7 +107,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 
-// Fetch user data
+
 global $conn;
 $stmt = $conn->prepare("SELECT * FROM users WHERE id = ?");
 $stmt->bind_param("i", $user_id);
@@ -116,7 +116,7 @@ $result = $stmt->get_result();
 $user = $result->fetch_assoc();
 $has_profile_picture = isset($user['profile_picture']) && !empty($user['profile_picture']);
 
-// Log current user data for debugging
+
 error_log("Current user data: " . json_encode($user));
 
 function resizeImage($filename)
@@ -141,11 +141,10 @@ function resizeImage($filename)
     imagedestroy($temp);
 }
 
-// Set default image path
+
 $defaultImagePath = 'C:/xampp/htdocs/login-register/images/3.png';
 
-// Check if user has a profile picture
-if (isset($user['profile_picture']) && !empty($user['profile_picture'])) {
+if ($has_profile_picture) {
     $profilePicturePath = $user['profile_picture'];
 } else {
     $profilePicturePath = $defaultImagePath;
@@ -490,7 +489,7 @@ $has_profile_picture = !empty($profilePicturePath);
             }
         }
 
-        /* Responsive adjustments */
+   
         @media (max-width: 576px) {
             .modal-content {
                 width: 90%;
@@ -608,7 +607,7 @@ $has_profile_picture = !empty($profilePicturePath);
                 reader.readAsDataURL(profilePictureInput.files[0]);
             });
 
-            // Function to handle profile picture upload
+      
             function uploadProfilePicture() {
                 var formData = new FormData();
                 formData.append('new_profile_picture', profilePictureInput.files[0]);
@@ -625,7 +624,7 @@ $has_profile_picture = !empty($profilePicturePath);
                             if (responseData.success) {
                                 console.log('Profile picture uploaded successfully');
 
-                                // Update the profile picture display
+                                
                                 var profilePictureContainer = $('.profile-picture-container');
                                 profilePictureContainer.html('<img src="' + responseData.message + '" alt="Profile Picture" style="object-fit: cover;">');
                                 $('#editProfilePictureModal').modal('hide'); // Close the modal
@@ -645,7 +644,7 @@ $has_profile_picture = !empty($profilePicturePath);
                 });
             }
 
-            // Function to handle general profile update
+
             function updateProfile() {
                 var formData = new FormData(document.querySelector('form'));
 
@@ -657,7 +656,7 @@ $has_profile_picture = !empty($profilePicturePath);
                     contentType: false,
                     success: function(response) {
                         console.log('Profile updated successfully');
-                        // You can update the UI here if needed
+                    
                         alert('Your profile has been updated successfully!');
                         window.location.href = '/login-register/index.php?updated=true';
                     },
@@ -668,19 +667,18 @@ $has_profile_picture = !empty($profilePicturePath);
                 });
             }
 
-            // Handle form submission
+          
             $('form').on('submit', function(e) {
                 e.preventDefault();
                 updateProfile();
             });
 
-            // Handle update button click
             updateButton.addEventListener('click', function(e) {
                 e.preventDefault();
                 updateProfile();
             });
 
-            // Handle modal submit button
+
             document.querySelector('#editProfilePictureModal .btn-primary').addEventListener('click', function(e) {
                 e.preventDefault();
                 uploadProfilePicture();
