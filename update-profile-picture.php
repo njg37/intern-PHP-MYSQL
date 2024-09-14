@@ -31,8 +31,8 @@ function resizeImage($filename) {
     $width = imagesx($image);
     $height = imagesy($image);
     
-    $max_width = 300; // Adjust this value based on your modal size
-    $max_height = 300; // Adjust this value based on your modal size
+    $max_width = 300; 
+    $max_height = 300; 
     
     $new_width = ($width > $max_width) ? $max_width : $width;
     $new_height = ($height > $max_height) ? $max_height : $height;
@@ -64,7 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $uploadOk = 1;
     $imageFileType = strtolower(pathinfo($target_file, PATHINFO_EXTENSION));
 
-    // Check if image file is a actual image or fake image
+
     $check = getimagesize($_FILES["new_profile_picture"]["tmp_name"]);
     if ($check !== false) {
         $uploadOk = 1;
@@ -73,19 +73,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit();
     }
 
-    // Check file size
+
     if ($_FILES["new_profile_picture"]["size"] > 5000000) {
         echo json_encode(['success' => false, 'message' => 'Sorry, your file is too large.']);
         exit();
     }
 
-    // Allow certain file formats
+
     if ($imageFileType != "jpg" && $imageFileType != "png" && $imageFileType != "jpeg" && $imageFileType != "gif") {
         echo json_encode(['success' => false, 'message' => 'Sorry, only JPG, JPEG, PNG & GIF files are allowed.']);
         exit();
     }
 
-    // Check if $uploadOk is set to 0 by an error
+
     if ($uploadOk == 0) {
         echo json_encode(['success' => false, 'message' => 'Sorry, your file was not uploaded.']);
         exit();
@@ -100,12 +100,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 exit();
             }
 
-            // Update user profile with new image URL
+
             $new_image_url = "/login-register/uploads/" . basename($_FILES["new_profile_picture"]["name"]);
             $update_query = "UPDATE users SET profile_picture = '$new_image_url' WHERE id = '$user_id'";
             mysqli_query($conn, $update_query);
 
-            // After successful upload and database update
+
             $response = array('success' => true, 'message' => $new_image_url);
             echo json_encode($response);
         } else {
