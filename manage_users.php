@@ -1,7 +1,25 @@
 <?php
-
+session_start();
 require_once "database.php";
+require_once "helpers.php";
+// Debugging information
+echo "Session Status: " . (isset($_SESSION) ? 'Started' : 'Not Started') . "<br>";
+echo "User ID: " . (isset($_SESSION['user']) ? $_SESSION['user'] : 'Not Set') . "<br>";
+echo "User Role: " . (isset($_SESSION['user']) ? hasPermission('admin') ? 'admin' : 'not admin' : 'Not Set') . "<br>";
 
+// Check if user is logged in
+if (!isset($_SESSION['user'])) {
+    echo "You are not logged in. Please log in first.";
+    exit();
+}
+
+if (!hasPermission('admin')) {
+    echo "You don't have permission to access this page.";
+    //header('Location: index.php');
+    exit();
+}
+// If we reach here, the user is logged in and has admin permission
+echo "Welcome, admin! You have access to this page.";
 $sql = "SELECT * FROM users";
 $result = mysqli_query($conn, $sql);
 ?>
