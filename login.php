@@ -42,7 +42,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
               
                 if (password_verify($password, $hashedPassword)) {
                  
-                    $_SESSION['user'] = $userId;
+                    $_SESSION['user'] = (int)$userId; // Ensure it's an integer
                     header('Location: index.php');
                     exit();
                 } else {
@@ -93,7 +93,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             }
         }
     </script>
-     <style>
+<style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
 
 body {
